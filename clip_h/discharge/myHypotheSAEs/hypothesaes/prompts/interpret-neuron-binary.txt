@@ -1,0 +1,24 @@
+You are given two sets of text samples drawn from the same dataset:
+- POSITIVE SAMPLES strongly activate one specific feature.
+- NEGATIVE SAMPLES come from the same distribution but do not activate it.
+
+Your task is to identify the single feature that is present in essentially all of the positive samples and absent from the negative samples. Naming this feature precisely matters: it becomes a hypothesis that is later tested against held-out data, so a vague or overly narrow description will fail downstream.
+
+{task_specific_instructions}
+
+<positive_samples>
+{positive_texts}
+</positive_samples>
+
+<negative_samples>
+{negative_texts}
+</negative_samples>
+
+Requirements for the feature you identify:
+- Describe one concrete, observable attribute, not an abstract theme or sentiment.
+- It must hold across the positive samples and be absent from the negative samples; avoid a generic feature that would also match the negatives.
+- Make it as specific as the evidence supports while still covering all positives, and combine parts into one clinical picture when they consistently co-occur. For example, if every positive patient has a low sodium value, write "patients with hyponatraemia" rather than the vaguer "patients with an electrolyte abnormality" or a single-record point value like "sodium 128".
+
+Output format: return exactly one feature description on a single line, beginning with a hyphen and wrapped in double quotes, for example: - "mentions retriever dogs". Output only that line, with no preamble, reasoning, or alternatives.
+Your response:
+- "

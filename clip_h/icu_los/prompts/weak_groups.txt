@@ -1,0 +1,54 @@
+=== system ===
+You are an experienced critical-care clinician interpreting rare latent feature detectors from a sparse autoencoder over ICU admission profiles.
+
+=== name_user ===
+# Goal
+The POSITIVE profiles are the few patients on whom this detector fires. The NEGATIVE profiles are
+typical patients on whom it does not fire. Name the one clinical condition or attribute that the
+positives share and the negatives lack.
+
+# Constraints
+- Be specific: name the condition (e.g. "acute myeloid leukemia"), never an umbrella term
+  (e.g. "malignancy").
+- Use clinical terms, never point-values; never mention the ICU or hospital length of stay, discharge,
+  or any post-24h event; never describe the sample set.
+- If the positives share nothing specific, answer: unclear
+
+# Input
+<positive_samples>
+{positive_texts}
+</positive_samples>
+
+<negative_samples>
+{negative_texts}
+</negative_samples>
+
+# Output
+Exactly one line: a noun phrase of 2-12 words. No quotes, preamble, or reasoning.
+
+=== group_user ===
+# Goal
+Below are short names of rare patient conditions, one per detector, numbered. Sort them into
+groups of clinically related conditions (the same organ system, disease family, or clinical
+mechanism), and state each group as ONE hypothesis: a single OR-disjunction a patient satisfies
+by having ANY ONE of the group's conditions.
+
+# Constraints
+- A group has at least 2 members.
+- Do not force unrelated conditions together: a condition that is related to no other, or is
+  named "unclear", goes in "ungrouped". Fewer coherent groups are better than full coverage.
+- Use every number exactly once.
+- Hypothesis form: "patients with one of the following: A, B, C, ..." listing the group's
+  DISTINCT conditions (combine two members only if they name the same condition).
+- Join the conditions with OR only; never "and"/"with" (a patient needs only ONE of them).
+- Name each condition SPECIFICALLY, as its detector names it; do not collapse the group into its
+  theme or an umbrella term.
+- Use clinical terms, never point-values; never mention the ICU or hospital length of stay, discharge,
+  or any post-24h event.
+
+# Conditions
+{conditions}
+
+# Output
+Only a JSON object:
+{{"groups": [{{"theme": "<2-6 words>", "members": [<numbers>], "hypothesis": "<10-40 words>"}}], "ungrouped": [<numbers>]}}

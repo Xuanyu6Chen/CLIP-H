@@ -1,0 +1,15 @@
+numpy
+pandas
+scipy
+scikit-learn
+statsmodels
+xgboost
+pyarrow
+torch
+sentence-transformers
+tqdm
+openai
+anthropic
+httpx
+tiktoken
+jupyter

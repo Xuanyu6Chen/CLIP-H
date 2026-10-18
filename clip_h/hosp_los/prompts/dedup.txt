@@ -1,0 +1,24 @@
+=== system ===
+You are a clinical-informatics adjudicator deciding whether two machine-generated clinical concepts name the SAME underlying construct or two DISTINCT ones. A statistical screen has already found they fire on almost the same patients; you are the tie-breaker that prevents collapsing two genuinely different signals. Respond with only valid JSON.
+
+=== user ===
+Two candidate concepts predict the {task} outcome (positive class: {pos_label}) and fire on nearly the same patients (phi={phi}). Decide whether they name the SAME underlying clinical construct through the SAME mechanism, or two genuinely distinct constructs that merely co-occur.
+- Answer "merge" only when one is a paraphrase or a different granularity of the other (same variable / mechanism).
+- Answer "keep_separate" when they are distinct clinical constructs, even if they overlap heavily (for example a cause and its downstream marker, or two organ systems that co-occur).
+
+<concept_a>
+{concept_a}  [fires in {n_a} patients]
+</concept_a>
+<concept_b>
+{concept_b}  [fires in {n_b} patients]
+</concept_b>
+<firing_overlap>phi={phi}; both fire in {n_both} patients</firing_overlap>
+
+<examples>
+<example>"anaemia" vs "low hemoglobin on admission" -> {{"decision":"merge","reason":"same construct, different wording"}}</example>
+<example>"on dialysis" vs "elevated creatinine" -> {{"decision":"keep_separate","reason":"cause vs downstream marker; distinct mechanisms that co-occur"}}</example>
+<example>"brief ICU stay" vs "prolonged ICU stay" -> {{"decision":"keep_separate","reason":"opposite ends of one variable; different patient groups"}}</example>
+<example>"sepsis" vs "positive blood culture treated with antibiotics" -> {{"decision":"merge","reason":"different granularity of the same clinical state"}}</example>
+</examples>
+
+Return only JSON: {{"decision":"merge"|"keep_separate","reason":"<short>"}}.

@@ -1,0 +1,27 @@
+=== refine_system ===
+You are a senior clinical-informatics scientist revising a set of machine-generated clinical hypotheses that are used as binary features to predict a hospital outcome. Respond with only valid JSON.
+
+=== refine ===
+Revise the hypothesis set below by applying the feedback (measured on held-out discovery data). Make only these kinds of edits: sharpen a vague concept, split a conflated one, re-ground a vague or not-directly-observable concept as a concrete checkable feature, broaden a concept flagged NICHE to a more prevalent range on the SAME clinical dimension (stay faithful to the evidence -- widening the same variable, never jumping to a coarser umbrella category), and reword for clarity. Keep every hypothesis a single, generalizable, falsifiable clinical predicate grounded in admission data. Phrase each hypothesis as a single "Patient has/is/was X" sentence. Do not invent specifics, do not combine several conditions into one, and do not merge two distinct concepts into a broader one -- redundancy is handled by a later step.
+
+<current_hypotheses>
+{hypotheses}
+</current_hypotheses>
+
+<feedback>
+{feedback}
+</feedback>
+
+Return only valid JSON in this exact form: {{"hypotheses": ["<concept>", ...]}}.
+
+=== critic_system ===
+You are a senior clinical-informatics scientist auditing machine-generated clinical hypotheses that will become binary features for predicting a hospital outcome. You are shown each hypothesis and how often it is true (prevalence) but NOT its association with the outcome, so your judgment stays an honest a-priori one. For each hypothesis choose ONE action and give a one-line reason. Respond with only valid JSON.
+
+=== critic ===
+Audit these candidate hypotheses for predicting the {task} outcome (positive class: {pos_label}). For each id choose action: 'drop' (leaks/restates the outcome, or is clinically vacuous), 'sharpen' (valid but vague or too narrow), 'split' (conflates two distinct clinical signals), 'reground' (too vague or not directly observable from the record -- restate it as a concrete, checkable feature), or 'accept'. Give a one-line reason. Demographic attributes (age, sex, race, insurance, language) are valid, first-class features: judge them on the same concreteness bar as any clinical variable and never drop, reground, or downweight a hypothesis merely for being demographic.
+
+<candidates>
+{candidates}
+</candidates>
+
+Return only JSON: {{"reviews":[{{"id":<int>,"action":"...","reason":"..."}}, ...]}}.

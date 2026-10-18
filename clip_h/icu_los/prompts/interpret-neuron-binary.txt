@@ -1,0 +1,111 @@
+You are an experienced critical-care and hospital-medicine clinician at a large
+academic medical center, reasoning about which ICU patients will have a PROLONGED ICU
+length of stay, using only information available in the FIRST 24 HOURS of the stay. You
+interpret latent feature detectors from a sparse autoencoder trained on structured ICU
+admission profiles (one profile per patient's last ICU stay).
+
+Each profile has these sections; every dynamic value is restricted to the first 24 hours OF THE
+ICU STAY (the clock starts at ICU admission, not hospital admission):
+- PATIENT BASELINE: age, sex, race, marital status, insurance, primary language, and baseline
+  height / weight / BMI / blood pressure.
+- ADMISSION (first 24h): admission type (elective vs urgent/emergent), admission location,
+  admitting service, and unit transfers in the first 24h.
+- EARLY COURSE (first 24h): medications started, mechanical-ventilation and dialysis flags,
+  urine output with an oliguria flag, and vital-sign ranges (HR, SBP, SpO2, RR, temperature).
+- LABS (first 24h): timestamped serial values (value@hour, * = abnormal) for creatinine, BUN,
+  sodium, potassium, bicarbonate, glucose, lactate, hemoglobin, WBC, platelets, INR, albumin,
+  bilirubin, and troponin, plus a count of abnormal results.
+- INFECTION (first 24h): cultures ordered and specimen sites, or an explicit "no cultures" line.
+(There are NO coded diagnoses. All patients in this cohort are ICU patients, so there is no
+ICU-membership section, and nothing after hour 24 of the ICU stay is ever shown.)
+
+# Task
+You will be shown POSITIVE profiles that were flagged by ONE detector and NEGATIVE profiles
+(from the same population) that were not. Name the SINGLE clinical concept present in essentially
+all positives and absent from the negatives. This name becomes a hypothesis later annotated
+Yes/No on held-out patients, so it must be precise, generalizable, and verifiable from the record.
+
+This detector fires on ONE coherent patient group, so name ONE general clinical concept - not a
+list. Do NOT output an OR-disjunction ("A, B, or C" / "one of the following: ..."); that form is
+handled elsewhere. If the positives look like several related diagnoses, step UP to the single
+broader category that covers them (e.g. "active malignancy", "sepsis with organ dysfunction",
+"advanced chronic organ failure") rather than listing them or picking one niche member.
+
+# Requirements
+1. Output ONE general clinical concept - either (a) a single condition/feature, or (b) one
+   coherent mechanism where two findings genuinely co-occur (e.g. "acute kidney injury with
+   oliguria"). Do NOT output an OR-list of alternative conditions.
+2. Aim for a GENERAL, recognizable disease category, not a niche one-off. Name the broader
+   VALIDATED category the positives belong to when the samples support it (e.g. "active
+   metastatic malignancy" rather than one tumor site; "acute respiratory failure" rather than one
+   ventilation mode). Do not invent breadth the samples do not show, but prefer the general type
+   over the narrow label.
+3. Do NOT MANUFACTURE an "and"/"with" by stapling unrelated findings together to look specific.
+   Only keep an "and"/"with" when the two findings genuinely co-occur as one mechanism (as in 1b).
+4. Use clinical ranges/directions ("low hemoglobin", "advanced age", "elevated lactate"), never
+   specific point-values ("hemoglobin 8.2", "age 84").
+5. Prefer features grounded in concrete first-24h profile signals - urgent/emergent admission,
+   mechanical ventilation or dialysis, oliguria, abnormal first-24h labs, sepsis
+   or positive cultures, major/complex diagnoses, higher comorbidity burden - and demographic
+   attributes (age band, sex, race, insurance, language) are allowed when the detector clearly
+   fires on them.
+6. The feature must be visible in the profile text - do not infer facts that are not stated.
+7. Do not output a generic feature that also appears clearly in the negative profiles.
+8. Never use the outcome or any of its proxies. For this task the OUTCOME is the ICU LENGTH OF
+   STAY, so NEVER name the ICU or hospital stay length itself, ICU or hospital discharge timing,
+   discharge disposition, in-hospital
+   death, or ANY event after the first 24 hours (DNR/DNI/code status included). Describe only what
+   is knowable within the first 24 hours. Never describe the sample set ("the positive samples...").
+
+# Reference: what tends to drive a PROLONGED ICU stay (> 96 hours; cohort floor >= 30h)
+Use as a guide for what tends to matter, NOT a checklist, and only when the profiles actually
+show it. The established predictors come from validated ICU severity-of-illness models
+(APACHE II/IV, SAPS II, SOFA); the profile fields below map onto their components:
+- Organ support in the first 24h (SOFA cardiovascular / respiratory / renal): mechanical
+  ventilation, vasopressor infusions among early medications, dialysis.
+- Renal dysfunction: oliguria or low urine output, elevated creatinine or BUN.
+- Physiologic derangement (APACHE/SAPS vital-sign components): shock or unstable vitals
+  (low SBP, high HR), fever or hypothermia, tachypnea, low SpO2.
+- Abnormal first-24h labs: elevated lactate, low bicarbonate (acidosis), abnormal WBC, low
+  platelets or hemoglobin, elevated bilirubin or INR (SOFA coagulation / liver components).
+- Sepsis or serious infection: multiple cultures ordered plus broad-spectrum antibiotics or
+  vasopressors among early medications.
+- Non-elective (urgent/emergent) admission; advanced age.
+Prefer a validated, generalizable feature like these over a narrow one-off when the samples support it.
+
+# Examples
+<examples>
+<example>
+Positives show mechanical ventilation or dialysis in the first 24h across different patients -
+both acute organ support; name the general category, NOT an "A or B or C" list.
+- "patients requiring acute organ support in the first 24 hours"
+</example>
+<example>
+Positives consistently show "oliguria: 1" (low first-24h urine output) across otherwise varied patients.
+- "patients with oliguria in the first 24 hours"
+</example>
+<example>
+Positives show persistently abnormal first-24h vital-sign ranges (e.g., tachycardia with low SpO2)
+across otherwise varied patients.
+- "patients with unstable vital signs in the first 24 hours"
+</example>
+<example>
+Positives share different specific cancers, but all are active malignancy - step up to the general
+category, do NOT list sites or pick one.
+- "patients with active malignancy"
+</example>
+</examples>
+
+# Profiles to interpret
+<positive_samples>
+{positive_texts}
+</positive_samples>
+
+<negative_samples>
+{negative_texts}
+</negative_samples>
+
+Now name the detector. Output exactly one line: a falsifiable patient-level predicate naming ONE
+general clinical concept, 8-25 words, starting with a hyphen and wrapped in quotes, e.g.
+- "patients requiring mechanical ventilation within the first 24 hours"
+Output only that line - no preamble, reasoning, or alternatives.

@@ -1,0 +1,33 @@
+# Raw MIMIC-IV tables and everything built from them stay off GitHub
+**/mimic-iv-3.1/*
+!**/mimic-iv-3.1/.gitkeep
+*.csv
+*.csv.gz
+*.jsonl
+
+# Mortality and discharge: caches and run outputs (patient-derived)
+**/clip_h_runs/
+**/emb_cache/
+**/annotation_cache/
+**/predictions/
+*.parquet
+*.npy
+*.pt
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS
+.DS_Store
+
+# data/<task>/: the patient files every method reads (patient-derived); only the empty folder is in git
+/data/*
+!/data/.gitkeep
+
+# Run outputs and local secrets
+**/results/
+.env

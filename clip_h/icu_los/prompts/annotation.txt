@@ -1,0 +1,86 @@
+=== pair_system ===
+You are a careful clinical annotator. Answer "Yes" or "No", then at most one sentence of justification grounded in the TEXT. When uncertain, answer No.
+
+
+=== pair ===
+Check whether the TEXT satisfies a clinical PROPERTY. Answer Yes or No, then give at most one sentence of evidence grounded in the TEXT. When uncertain, answer No.
+For a PROPERTY that lists conditions joined by OR ("A, B, or C" / "one of the following: ..."),
+answer Yes if the patient matches AT LEAST ONE listed condition. For conditions joined by
+"and"/"with", answer Yes only if ALL of them are present.
+
+Example 1:
+PROPERTY: "Patient was mechanically ventilated in the first 24 hours."
+TEXT: "- Mechanical ventilation in first 24h: 1; dialysis: 0."
+Output: Yes. The ventilation flag is 1 in the first 24 hours.
+
+Example 2:
+PROPERTY: "Patient has a documented positive blood culture."
+TEXT: "- 6 culture(s) ordered - SPUTUM; BLOOD CULTURE; MRSA SCREEN; URINE."
+Output: No. Cultures were ordered, but no positive result is documented in the TEXT.
+
+Example 3:
+PROPERTY: "Patient has one of the following: elevated lactate, metabolic acidosis, or shock."
+TEXT: "- Lactate 1.4@9h; 2.9*@18h
+- Bicarbonate 17*@15h
+- Vital signs, first 24h (ranges): HR 105-161; SBP 64-138."
+Output: Yes. Lactate is marked abnormal at 2.9 and bicarbonate is abnormally low, satisfying the OR list.
+
+Example 4:
+PROPERTY: "Patient is on vasopressor support and mechanically ventilated."
+TEXT: "- Medications started, first 24h: NORepinephrine; Propofol; Fentanyl Citrate.
+- Mechanical ventilation in first 24h: 0; dialysis: 0."
+Output: No. A vasopressor was started but the ventilation flag is 0, and "and" requires both.
+
+Example 5:
+PROPERTY: "Patient has oliguria or acute kidney injury in the first 24 hours."
+TEXT: "- Urine output, first 24h: 310 mL (oliguria: 1).
+- Creatinine 1.9*@6h; 2.4*@20h"
+Output: Yes. The oliguria flag is 1 and creatinine is abnormal and rising.
+
+Now complete the following example. Answer Yes or No, then at most one sentence grounded in the TEXT.
+PROPERTY: "{hypothesis}"
+TEXT: "{text}"
+Output:
+
+
+=== pair_suffix ===
+ Answer Yes or No, then at most one sentence grounded in the TEXT.
+
+=== rubric_header ===
+You are a board-certified physician with extensive experience in inpatient hospital medicine, reviewing de-identified patient admission profiles. For each PATIENT and each PROPERTY below, decide whether the patient's TEXT satisfies the PROPERTY, using only documented clinical evidence. Answer 1 for Yes, 0 for No. When the TEXT does not clearly support the property, answer 0. Judge ONLY from what is stated in the TEXT — do not infer beyond what is written.
+
+
+=== checklist_rules ===
+For a property that lists conditions joined by OR ("A, B, or C" / "one of the following: ..."), answer 1 if the patient matches AT LEAST ONE; for conditions joined by "and"/"with", answer 1 only if ALL are present. When the TEXT does not clearly support a property, answer 0. Judge ONLY from what is stated in the TEXT.
+
+=== checklist ===
+{rubric_header}
+{checklist_rules}
+
+## Properties
+{properties}
+
+## Patient profile
+{profile}
+
+Work through the properties ONE AT A TIME in order, re-reading the relevant profile line for each before deciding. Do not write your reasoning.
+Output ONLY a JSON object with one key per property: {{"c0": 0 or 1, "c1": 0 or 1, ..., "c{last_index}": 0 or 1}}
+
+=== worked_example ===
+## Calibration (how to judge — your OUTPUT is ONLY the labels line, no prose, no Yes/No words)
+Judge each property from the TEXT alone. For a property that lists conditions joined by OR ("A, B, or C" / "one of the following: ..."), label 1 if the patient matches AT LEAST ONE; for conditions joined by "and"/"with", label 1 only if ALL are present. When the TEXT does not clearly support a property, label 0.
+
+Worked example (shows the judgment AND the exact output line):
+Properties: c0: "Patient was mechanically ventilated in the first 24 hours"; c1: "Patient has a documented positive blood culture"; c2: "Patient has one of the following: oliguria, elevated lactate, or vasopressor support".
+Patient: {"id":"pX","text":"- Mechanical ventilation in first 24h: 1; dialysis: 0.\n- 2 culture(s) ordered - BLOOD CULTURE.\n- Urine output, first 24h: 310 mL (oliguria: 1)."}
+Decide silently (do NOT write this out): c0=1 (ventilation flag is 1); c1=0 (cultures ordered, no positive result documented); c2=1 (oliguria flag is 1, satisfying the OR list).
+Output line: {"id":"pX","labels":[1,0,1]}
+
+=== labels ===
+{rubric_header}
+{worked_example}
+
+## Now annotate
+Properties: {properties}.
+Patient: {patient}
+Output ONLY one JSON object with exactly {n_properties} keyed labels. Use 0 or 1 for every value: {{"id":"p0","labels":{{{label_template}}}}}

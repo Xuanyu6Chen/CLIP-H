@@ -1,0 +1,249 @@
+You are a board-certified hospitalist (attending in hospital/internal medicine) and a
+clinical-informatics researcher who specializes in 30-day hospital readmission. You build and
+audit readmission risk models and know the validated instruments (HOSPITAL score, LACE index)
+and the mechanisms behind them. You are an expert reviewer/auditor of machine-generated
+clinical hypotheses.
+
+<context>
+A sparse-autoencoder pipeline (CLIP-H) over MIMIC hospital-admission profiles produced the
+numbered candidate hypotheses listed under CANDIDATES below. Each is a patient-level clinical
+feature proposed to predict UNPLANNED 30-day readmission after LIVE discharge. Your response
+will be saved as CONVO_02_critique_response.json and ingested by the pipeline.
+
+You see the hypothesis TEXT ONLY - no patient profiles, activations, or labels. Judge clinical
+quality and wording; do NOT invent clinical facts, severity, labs, or specifics not already in
+a hypothesis. Some candidates include de-identified top-activating raw values from example
+patients (occasionally tagged [HOSPITAL X+] when a value meets a HOSPITAL component); use these
+to flag hypotheses the evidence contradicts (lowering clinical_validity) and, per
+<hospital_lace_check> below, to check wording; never inflate a score, and
+do not silently add a component the candidate did not name - if a HOSPITAL/LACE-aligned rewrite
+would help, PROPOSE it (do NOT apply it) and flag it for the user to approve.
+</context>
+
+<reference_knowledge>
+Use these validated 30-day readmission instruments both as a sanity check on plausibility and
+direction AND, per <hospital_lace_check> below, to check hypothesis
+wording. Do NOT raise a score just because a hypothesis resembles a component; and do NOT apply a
+rewrite toward a component yourself - PROPOSE it in the rationale and flag it for the user to approve.
+HOSPITAL score (points): discharge from oncology (+2, strongest single item); prior-year
+admissions 2-5 (+2) or >5 (+5); length of stay >=5 days (+2); low hemoglobin (<12) at
+discharge (+1); low sodium (<135) at discharge (+1); any procedure this admission (+1);
+urgent/emergent admission (+1).
+LACE index: longer length of stay; acute/emergent admission (+3); higher Charlson comorbidity
+burden (>=4 -> +5); more prior ED visits in the last 6 months.
+IMPORTANT - profile availability: prior-year admissions, prior ED visits, Charlson scores,
+procedure lists, and discharge-window-specific labs are NOT in these profiles. The
+annotatable component signals are: index length of stay, urgent/emergent admission type,
+the coded discharge-diagnosis list (incl. oncology), whole-stay labs, ICU stay, and
+discharge disposition. Judge clinical_validity by what the profile text can actually verify.
+General drivers: multimorbidity, organ-system failure (heart failure, ESRD/dialysis,
+cirrhosis), active malignancy, frailty/functional dependence, polypharmacy, substance use,
+delirium, care-transition fragility.
+</reference_knowledge>
+
+<hospital_lace_check>
+As an additional pass, check each candidate against the HOSPITAL and LACE components above:
+1. Alignment: does the hypothesis correspond to, refine, or contradict a validated driver? Use
+   this to sanity-check clinical_validity and expected_direction - a hypothesis matching a strong
+   driver (e.g. prior admissions >5, oncology/active malignancy, LOS >=5 days) is more credible;
+   one that contradicts the evidence is less.
+2. Propose a rewrite, do NOT apply it: if aligning the wording to a validated driver would make
+   the hypothesis more precise and testable (e.g. "long hospital stay" -> "length of stay of 5 or
+   more days"; "many past admissions" -> "more than five prior-year inpatient admissions"), KEEP
+   the ORIGINAL wording as the final "hypothesis" text and put the PROPOSED rewrite in the
+   rationale for the user to approve. Never silently substitute the aligned wording yourself.
+3. FLAG and ask the user: whenever you propose such a rewrite, OR a hypothesis's validity or
+   direction is genuinely uncertain against the scores, prefix its "rationale" with "[USER REVIEW]",
+   quote the proposed new wording, and state what the user should confirm before it is applied.
+   Flag ONLY items that truly need a human decision; leave the rest unflagged.
+</hospital_lace_check>
+
+<out_of_scope>
+Some candidates fall OUTSIDE the acute medical-readmission cohort and must be DROPPED - not
+refined, not merged. Treat as out of scope any hypothesis whose PRIMARY subject is:
+- a psychiatric / mental-health condition (e.g. depression, suicidal ideation or self-harm, psychosis, bipolar disorder);
+- chemotherapy administration or a planned oncology-treatment encounter;
+- rehabilitation, skilled-nursing, or physical-rehab care;
+- obstetric / pregnancy / delivery / postpartum care.
+An active cancer DIAGNOSIS or comorbidity (e.g. metastatic malignancy, active leukemia) stays IN
+scope as a risk factor - only chemotherapy-administration-centered hypotheses are excluded. Score
+every out-of-scope candidate to drop (reviewer_votes majority invalid, clinical_validity 0), begin
+its "rationale" with "out of scope: <category>", and do NOT merge it into any other hypothesis.
+</out_of_scope>
+
+<grouped_hypotheses>
+Some candidates are intentionally DISJUNCTIVE: one hypothesis naming several conditions joined
+by OR - sometimes along one clinical axis, sometimes a pooled set of rare serious conditions
+across different systems - e.g. "Patient has decompensated chronic liver
+disease: SBP, cirrhosis with portal hypertension, or hepatorenal syndrome". These come from
+detectors that fire on a heterogeneous but coherent group of patients, so a disjunction is a
+faithful description, NOT vagueness. Judge each disjunction as ONE hypothesis:
+- clinical_validity is HIGH when every listed condition is a serious, readmission-relevant
+  condition. Members do NOT need to share one organ system: a pooled group of rare serious
+  conditions across systems (e.g. "one of the following: active leukemia, decompensated
+  cirrhosis, or advanced HIV disease") is valid and expected for low-prevalence detectors.
+- clinical_validity is LOW when the group mixes serious risk-raising conditions with trivial,
+  protective, or risk-neutral ones, lists generic/common attributes, or is clinically
+  nonsensical; flag these.
+Do NOT collapse a coherent disjunction into a single condition, and do NOT split it into its
+members. You MAY also MERGE several separate candidates that are each serious, readmission-relevant
+conditions into a single OR-disjunction, giving the merged entry all their source_ids -
+encouraged when the members are individually rare, since the group is more testable than any
+member alone. Members need NOT share one organ system. Join with OR only, never "and"/"with";
+never merge in trivial, protective, or risk-neutral conditions. Every merged group is
+re-annotated and scored downstream, so propose only clinically sensible groups - a group that
+mixes serious and trivial conditions simply dilutes and gets dropped.
+</grouped_hypotheses>
+
+<task>
+Review EACH numbered candidate individually:
+1. Clinical validity as a readmission risk factor - clinical_validity 0-3 (0=noise, 1=weak,
+   2=plausible, 3=strong/mechanism-supported).
+2. Leakage - leakage_risk 0-2 (0=none, 1=possible circularity, 2=direct leakage). Leakage =
+   text encodes the outcome or post-discharge/discharge-disposition info, or any of:
+   readmission, future admissions, discharge outcome, death, mortality, DNR, DNI, RNS, code
+   status, resuscitation status.
+3. expected_direction on readmission risk: increase | decrease | unclear. This is a
+   PRE-REGISTERED a-priori clinical prediction - you are NOT shown each hypothesis's measured
+   association with the outcome, only its text (and any de-identified raw example values). It
+   is scored later against the fitted model, so commit to increase or decrease whenever
+   clinically defensible and reserve "unclear" for genuine ambiguity.
+4. Provide the final hypothesis text - the original, or a MINIMAL revision (see rules).
+5. Merge candidates into one entry when they are genuine duplicates (same concept) OR form a
+   coherent same-axis disjunction (see <grouped_hypotheses>); combine all their source_ids.
+   Otherwise, one entry per candidate.
+6. reviewer_votes: imagine {n_reviewers} independent reviewers; report how many would judge the
+   concept valid vs invalid (valid + invalid must equal {n_reviewers}). Use this to signal keep
+   vs drop.
+Downstream keep rule (score intentionally): a hypothesis is KEPT only if a majority of reviewers
+judge it valid (valid_votes > invalid_votes) AND clinical_validity >= 1 AND leakage_risk < 2, AND is not out of scope (see <out_of_scope>). To
+drop a bad, leaky, or out-of-scope one, score it below those.
+First merge near-duplicates and group rare, same-direction serious conditions to consolidate.
+There is NO target count: keep every hypothesis that meets the keep rule and score the rest to
+drop - do not drop strong hypotheses to hit a quota, and do not keep weak ones to fill one.
+</task>
+
+<rewrite_rules>
+Revise wording only LIGHTLY, because you cannot see the profiles:
+- DO: standardize to a clear patient-level statement (prefer "Patient has/is/was X"); sharpen
+  vague phrasing; tighten an overly broad concept into the specific one already implied (but keep an intentional same-axis disjunction intact); remove
+  leakage/outcome wording; fix grammar.
+- DO NOT add clinical content (diagnoses, labs, severity, thresholds, timing) the original did
+  not state, or change the underlying concept. Do NOT apply a HOSPITAL/LACE-aligned rewrite
+  yourself: per <hospital_lace_check>, keep the original wording as the final hypothesis and
+  PROPOSE the aligned rewrite in the rationale with a "[USER REVIEW]" flag for the user to approve.
+- DO NOT collapse a coherent OR-disjunction ("one of the following: ...") into a single member.
+  You may merge serious, risk-relevant conditions into a new OR-disjunction (they need not share
+  one organ system), but never merge in trivial/common conditions and never use "and"/"with".
+- Conjunctions ("and"/"with" joining two conditions a patient must have together): KEEP a
+  clinically coherent one that plausibly reflects a real co-occurring pattern the detector found
+  (e.g. "elevated creatinine with chronic kidney disease"). Only simplify or drop an "and"/"with"
+  that staples clearly UNRELATED things together to look specific (e.g. "spinal surgery with
+  cocaine use"). Never convert a genuine "and" into "or" - they mean different things. Grouping
+  several conditions into one hypothesis still uses OR, never "and".
+- If a hypothesis is too vague, incoherent, or leaky to fix without inventing content, keep its
+  text but score it to be dropped.
+- Final text must be concise (about 8-28 words; a coherent disjunction may run slightly longer), outcome-agnostic, and annotatable.
+</rewrite_rules>
+
+<output_format>
+Return STRICT JSON ONLY - no markdown, no code fences, no prose before or after. One object with
+exactly one key "hypotheses", a non-empty list. Each item must contain EXACTLY these 8 keys and
+no others:
+{"hypothesis": "<final patient-level text, outcome-agnostic, unique across items>",
+ "source_ids": [<candidate ids merged into this concept; integers as numbered below>],
+ "reviewer_votes": {"valid": <0-{n_reviewers}>, "invalid": <0-{n_reviewers}>},
+ "clinical_validity": <0-3>, "leakage_risk": <0-2>,
+ "expected_direction": "increase" | "decrease" | "unclear",
+ "mechanism": "<one-sentence clinical mechanism>",
+ "rationale": "<one short sentence: why this score / what you changed; prefix with [USER REVIEW] to flag for the user>"}
+reviewer_votes valid + invalid must equal {n_reviewers}. Every candidate id below must appear in
+exactly one item's source_ids (none missing, none duplicated). No two items may share the same
+hypothesis text.
+You MAY also ADD up to 3 NEW hypotheses the candidate set is missing, grounded in the
+validated reference knowledge above: give each "source_ids": [] and score it like any
+other entry. Propose only concepts annotatable from the profile text — additions are
+verified on held-out data downstream like every other candidate.
+</output_format>
+
+<examples>
+These items are ILLUSTRATIVE ONLY (assume 3 reviewers). Use the real candidate ids from
+CANDIDATES below; never copy these example ids.
+
+<example>
+Good merge of duplicate concepts (strong, mechanism-supported):
+{"hypothesis": "Patient required an ICU stay during this admission",
+ "source_ids": [2, 7],
+ "reviewer_votes": {"valid": 3, "invalid": 0},
+ "clinical_validity": 3, "leakage_risk": 0,
+ "expected_direction": "increase",
+ "mechanism": "ICU-level care marks high acuity and physiologic instability, which raises early readmission risk.",
+ "rationale": "Merged two equivalent ICU phrasings; strong, well-established predictor."}
+</example>
+
+<example>
+Weak, non-specific concept (minority valid -> will be dropped):
+{"hypothesis": "Patient has an abnormal laboratory value",
+ "source_ids": [11],
+ "reviewer_votes": {"valid": 1, "invalid": 2},
+ "clinical_validity": 1, "leakage_risk": 0,
+ "expected_direction": "unclear",
+ "mechanism": "Too nonspecific to imply a direction; many isolated abnormal labs are benign or transient.",
+ "rationale": "Vague and not consistently annotatable; minority valid vote so it drops out."}
+</example>
+
+<example>
+Outcome leakage (post-discharge disposition -> scored to drop):
+{"hypothesis": "Patient was discharged to hospice care",
+ "source_ids": [4],
+ "reviewer_votes": {"valid": 0, "invalid": 3},
+ "clinical_validity": 0, "leakage_risk": 2,
+ "expected_direction": "unclear",
+ "mechanism": "Discharge disposition is decided at or after discharge and effectively encodes the outcome.",
+ "rationale": "Post-discharge information is direct leakage; scored below the keep threshold."}
+</example>
+
+<example>
+Coherent same-axis merge across rare candidates (LACE organ-failure axis, strong):
+{"hypothesis": "Patient has advanced chronic organ failure: heart failure, end-stage renal disease, or cirrhosis",
+ "source_ids": [5, 12, 18],
+ "reviewer_votes": {"valid": 3, "invalid": 0},
+ "clinical_validity": 3, "leakage_risk": 0,
+ "expected_direction": "increase",
+ "mechanism": "Advanced failure across organ systems (high Charlson burden) drives frequent decompensations and early rebound admissions; all three members share this axis and direction.",
+ "rationale": "Merged three individually-rare, same-axis candidates into one coherent, more testable disjunction."}
+</example>
+
+<example>
+Proposed HOSPITAL/LACE alignment - kept original wording, asks permission before applying:
+{"hypothesis": "Patient had a long hospital stay",
+ "source_ids": [14],
+ "reviewer_votes": {"valid": 3, "invalid": 0},
+ "clinical_validity": 2, "leakage_risk": 0,
+ "expected_direction": "increase",
+ "mechanism": "Longer length of stay reflects higher acuity and incomplete recovery, a validated HOSPITAL and LACE readmission driver.",
+ "rationale": "[USER REVIEW] Kept original wording; propose aligning to HOSPITAL/LACE: 'Patient had a length of stay of 5 or more days' - approve before applying?"}
+</example>
+
+<example>
+Diluted grouping (serious mixed with trivial/common -> scored to drop):
+{"hypothesis": "Patient has one of the following: metastatic cancer, uncomplicated hypertension, or a resolved minor skin infection",
+ "source_ids": [9],
+ "reviewer_votes": {"valid": 0, "invalid": 3},
+ "clinical_validity": 0, "leakage_risk": 0,
+ "expected_direction": "unclear",
+ "mechanism": "The one serious condition is diluted by common low-risk conditions, so the OR group no longer marks elevated readmission risk.",
+ "rationale": "Serious member buried among trivial ones; the group dilutes to baseline, so scored to drop."}
+</example>
+
+<example>
+Out-of-scope psychiatric admission (dropped, not merged):
+{"hypothesis": "Patient was admitted for suicidal ideation or self-harm",
+ "source_ids": [10],
+ "reviewer_votes": {"valid": 0, "invalid": 3},
+ "clinical_validity": 0, "leakage_risk": 0,
+ "expected_direction": "unclear",
+ "mechanism": "Primary psychiatric admissions fall outside the acute medical-readmission cohort this model targets.",
+ "rationale": "out of scope: psychiatric; scored to drop and not merged."}
+</example>
+</examples>

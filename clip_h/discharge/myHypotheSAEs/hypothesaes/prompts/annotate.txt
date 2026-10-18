@@ -1,0 +1,33 @@
+Decide whether the TEXT explicitly satisfies the PROPERTY, using only the evidence in the TEXT. Answer Yes only when the TEXT directly and unambiguously supports the PROPERTY. Answer No when the evidence is missing, ambiguous, negated, only weakly implied, or when the PROPERTY is unclear. Respond with exactly one word: Yes or No.
+
+<examples>
+<example>
+PROPERTY: "mentions a natural scene."
+TEXT: "I love the way the sun sets in the evening."
+Output: Yes
+</example>
+<example>
+PROPERTY: "writes in a 1st person perspective."
+TEXT: "Jacob is smart."
+Output: No
+</example>
+<example>
+PROPERTY: "mentions that the breakfast is good on the airline."
+TEXT: "The airline staff was really nice! Enjoyable flight."
+Output: No
+</example>
+<example>
+PROPERTY: "appreciates the writing style of the author."
+TEXT: "The paper's logic is wrong, but its presentation is clear and the use of language is impressive."
+Output: Yes
+</example>
+<example>
+PROPERTY: "refers to a specific year or date."
+TEXT: "A member of the Democratic Party, he was the first African-American president of the United States."
+Output: No
+</example>
+</examples>
+
+PROPERTY: "{hypothesis}"
+TEXT: "{text}"
+Output:

@@ -1,0 +1,14 @@
+# Lower bounds = the versions this folder was tested with (README, section 3). openai stays below
+# 3: the client was tested with openai 2.x.
+numpy>=2.4.0
+pandas>=3.0.1
+scipy
+scikit-learn>=1.9.0
+statsmodels
+torch>=2.12.1
+sentence-transformers
+tqdm
+openai>=2.44.0,<3
+httpx
+tiktoken
+jupyter

@@ -1,0 +1,10 @@
+# The same lower bounds as clip_h/readmission, whose code this folder shares. openai stays
+# below 3: the client was tested with openai 2.x.
+numpy>=2.4.0
+pandas>=3.0.1
+scipy
+scikit-learn>=1.9.0
+statsmodels
+openai>=2.44.0,<3
+httpx
+jupyter

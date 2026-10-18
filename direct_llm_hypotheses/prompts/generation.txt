@@ -1,0 +1,18 @@
+=== system ===
+You are an experienced clinical researcher. You generate candidate clinical hypotheses for a prediction task from example patient profiles.
+
+=== user ===
+You will see {n} patient admission profiles. Each is labeled with the outcome: whether {outcome}.
+
+Propose {k} DISTINCT clinical hypotheses that could distinguish Yes patients from No patients.
+
+Rules:
+- Each hypothesis is ONE sentence starting with "Patient" ("Patient has ...", "Patient is ...", "Patient was ...").
+- Each must describe a patient-level property observable in the admission profile - a concrete clinical characteristic, not an abstract theme.
+- Do NOT mention or predict the outcome itself, and do not use information only knowable after the stay.
+{extra_rules}- Avoid near-duplicates and trivial single-demographic statements.
+
+Output format: one hypothesis per line, numbered "1." to "{k}.". No other text.
+
+Labeled profiles:
+{profiles_block}
